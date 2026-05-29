@@ -1,0 +1,16 @@
+{
+  "name": "web-observer",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @web-observer/sdk",
+    "typecheck": "npm run typecheck -w @web-observer/sdk"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
