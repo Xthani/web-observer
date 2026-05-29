@@ -8,7 +8,8 @@
   ],
   "scripts": {
     "build": "npm run build -w @web-observer/sdk",
-    "typecheck": "npm run typecheck -w @web-observer/sdk"
+    "typecheck": "npm run typecheck -w @web-observer/sdk",
+    "test": "npm run build -w @web-observer/sdk && node --test tests/sdk/*.test.mjs"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
