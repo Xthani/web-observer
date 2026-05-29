@@ -17,7 +17,31 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Xthani/web-observer.git",
+    "directory": "packages/sdk"
+  },
+  "bugs": {
+    "url": "https://github.com/Xthani/web-observer/issues"
+  },
+  "homepage": "https://github.com/Xthani/web-observer#readme",
+  "keywords": [
+    "analytics",
+    "observer",
+    "product-analytics",
+    "session",
+    "click-tracking",
+    "dead-click",
+    "rage-click"
+  ],
+  "author": "Xthani",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
   "sideEffects": false
 }

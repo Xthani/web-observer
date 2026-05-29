@@ -9,7 +9,8 @@
   "scripts": {
     "build": "npm run build -w @web-observer/sdk",
     "typecheck": "npm run typecheck -w @web-observer/sdk",
-    "test": "npm run build -w @web-observer/sdk && node --test tests/sdk/*.test.mjs"
+    "test": "npm run build -w @web-observer/sdk && node --test tests/sdk/*.test.mjs",
+    "publish:sdk": "npm run test && npm publish -w @web-observer/sdk --access public"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
