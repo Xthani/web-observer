@@ -30,3 +30,7 @@ test("normalizeRoutePattern keeps semantic route segments", () => {
     "/reports/monthly",
   );
 });
+
+test("normalizeRoutePattern removes trailing slash", () => {
+  assert.equal(normalizeRoutePattern("/deals/"), "/deals");
+});

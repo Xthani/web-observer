@@ -207,7 +207,9 @@ export const initObserver = (config: ObserverConfig): ObserverInstance => {
   }
 
   if (normalizedConfig.debug.showPanel) {
-    cleanupCallbacks.push(mountDebugPanel(observer));
+    cleanupCallbacks.push(
+      mountDebugPanel(observer, normalizedConfig.privacy.blockClass),
+    );
   }
 
   void track("page_view");

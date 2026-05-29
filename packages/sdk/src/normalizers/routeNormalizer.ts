@@ -13,8 +13,10 @@ export const getCurrentRoute = (): string => {
 
 export const normalizeRoutePattern = (route: string): string => {
   const [pathname = "/"] = route.split(/[?#]/);
+  const normalizedPathname =
+    pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
 
-  return pathname
+  return normalizedPathname
     .split("/")
     .map((segment) => {
       if (!segment) {
