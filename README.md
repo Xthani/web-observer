@@ -1,142 +1,83 @@
 # Web Observer
 
-Frontend SDK for automatic product analytics in closed web applications.
+Privacy-first product analytics for modern web applications. Web Observer is a framework-agnostic TypeScript SDK that captures useful UX signals in the browser, stores them locally in IndexedDB, and produces compact summaries for debugging or AI-assisted analysis.
 
-The first milestone is the independent npm package `@web-observer/sdk`.
-Backend, admin panel, session replay, and AI analysis are optional layers that can be added later.
+The project is intentionally backend-agnostic: events can stay local during development, be exported on demand, or be delivered in batches to a custom endpoint.
 
-The browser session id is stored in `sessionStorage` per `appId`, so reloads in
-the same tab stay in one analytics session.
+## Why it exists
 
-## Install
+Traditional analytics tools are often too broad for internal products and closed business applications. Web Observer focuses on actionable interaction signals while keeping collection rules explicit:
 
-For local development:
+- page views and normalized route patterns;
+- clicks on interactive elements;
+- dead-click and rage-click detection;
+- form interaction events without storing input values;
+- browser errors;
+- privacy controls for masked or fully blocked DOM zones;
+- local summaries for flows, drop-offs, roles, routes, and problem signals.
+
+## Current status
+
+`@web-observer/sdk` is an early standalone SDK (`0.1.0`). It includes the browser collector, IndexedDB storage, batch transport, debug tooling, analytics summaries, automated tests, and a React demo. A hosted backend and dashboard are deliberately outside the current milestone.
+
+## Quick start
+
+```bash
+npm install
+npm run build
+```
+
+Install the locally built package in another application:
 
 ```bash
 npm install file:../web-observer/packages/sdk
 ```
 
-After publishing:
-
-```bash
-npm install @web-observer/sdk
-```
-
-Build this repository before local file installs:
-
-```bash
-npm run build
-```
-
-## Basic Usage
+Initialize it with a minimal configuration:
 
 ```ts
 import { initObserver } from "@web-observer/sdk";
 
-const observer = initObserver({
-  appId: "work-crm",
+initObserver({
+  appId: "product-app",
   mode: "debug",
-  debug: {
-    showPanel: true,
+});
+```
+
+## Production-oriented configuration
+
+```ts
+initObserver({
+  appId: "product-app",
+  user: {
+    id: currentUser.id,
+    role: currentUser.role,
   },
   routing: {
-    getRoutePattern: (route) => {
-      if (route.startsWith("/clients/")) return "/clients/:id";
-      return undefined;
-    },
+    getRoutePattern: (route) =>
+      route.startsWith("/clients/") ? "/clients/:id" : undefined,
   },
   privacy: {
-    excludeSelectors: ["[data-no-observer]"],
     maskTextSelectors: ["[data-private]"],
     blockSelectors: ["[data-observer-block]"],
     blockClass: "observer-block",
   },
-  uiAdapters: {
-    interactiveSelectors: [
-      ".ant-select",
-      ".ant-dropdown-menu-item",
-      "[data-radix-collection-item]",
-    ],
-    blockSelectors: [".ant-picker-dropdown"],
-  },
-});
-```
-
-For a shorter setup:
-
-```ts
-initObserver({
-  appId: "work-crm",
-  mode: "debug",
-});
-```
-
-The SDK currently collects:
-
-- `page_view`
-- `click`
-- `dead_click`
-- `rage_click`
-- `input`
-- `focus`
-- `change`
-- `error`
-
-Input values are not stored.
-
-`click` is used for interactive elements only: buttons, links, inputs,
-selects, textareas, common ARIA controls, and elements marked with
-`data-observer-name`.
-
-Clicks outside interactive elements are stored as `dead_click`. Three or more
-clicks on the same element within one second are stored as one `rage_click`
-signal for that short click series.
-
-`input` is debounced. The SDK stores the fact that the user changed a field
-after a short pause, not every typed character.
-
-`focus`, `change`, and `input` are collected only for real form fields:
-`input`, `select`, `textarea`, and `contenteditable` elements. Button focus is
-ignored to avoid noisy analytics.
-
-Regular `click` events are not stored for form fields because `focus`,
-`input`, and `change` describe that interaction better. Repeated fast clicks on
-the same field can still produce a `rage_click` signal.
-
-`privacy.maskTextSelectors` stores matching text as `[masked]`.
-`privacy.blockSelectors`, `privacy.blockClass`, and `uiAdapters.blockSelectors`
-skip whole DOM zones completely.
-
-## Custom Backend
-
-```ts
-initObserver({
-  appId: "work-crm",
   transport: {
-    endpoint: "https://my-api.com/observer/events/batch",
-    headers: {
-      Authorization: "Bearer token",
+    endpoint: "https://api.example.com/observer/events/batch",
+    retry: {
+      attempts: 2,
+      baseDelayMs: 500,
+      maxDelayMs: 5000,
     },
   },
 });
 ```
 
-You can also pass a custom sender:
+Input values are never stored. Matching text can be replaced with `[masked]`, and sensitive DOM zones can be excluded entirely.
 
-```ts
-initObserver({
-  appId: "work-crm",
-  transport: {
-    send: async (batch) => {
-      await myCustomApi.saveObserverBatch(batch);
-    },
-  },
-});
-```
+## Debug and AI-assisted analysis
 
-## Debug Mode
-
-With `mode: "debug"`, the SDK exposes a browser console API:
+Debug mode exposes a small browser API:
 
 ```ts
 await window.__WEB_OBSERVER__.getEvents();
@@ -146,50 +87,31 @@ await window.__WEB_OBSERVER__.flush();
 await window.__WEB_OBSERVER__.clear();
 ```
 
-Use `getSummary()` as the first AI input. It returns compact analytics:
-totals, top routes, top events, and problem signals such as `dead_click`,
-`rage_click`, and `error`. It also includes simple flow summaries, drop-off
-points, role breakdowns, and a comparison between the first and second half of
-the local period. Local aggregates are included by day and by session.
+`getSummary()` is designed as the first input for an AI analyst. It aggregates totals, routes, event types, short flows, drop-offs, role breakdowns, period comparisons, and UX problem signals without requiring a large raw-event dump.
 
-After a successful `flush()`, sent events are cleaned up automatically by TTL
-and max-count limits. You can tune this behavior:
+## Repository structure
 
-```ts
-initObserver({
-  appId: "work-crm",
-  transport: {
-    endpoint: "https://my-api.com/observer/events/batch",
-    retry: {
-      attempts: 2,
-      baseDelayMs: 500,
-      maxDelayMs: 5000,
-    },
-  },
-  storagePolicy: {
-    cleanupSentEvents: true,
-    sentEventTtlMs: 7 * 24 * 60 * 60 * 1000,
-    maxSentEvents: 1000,
-  },
-});
+```text
+packages/sdk/          TypeScript SDK
+examples/react-demo/   Integration example
+tests/sdk/             Node-based automated tests
+docs/                  Usage, event format, and AI summary docs
 ```
 
-Events are stored in IndexedDB:
+## Quality checks
 
-```txt
-DevTools -> Application -> IndexedDB -> web-observer
+```bash
+npm run typecheck
+npm test
 ```
 
-## Docs
+## Documentation
 
 - [SDK usage](./docs/sdk-usage.md)
 - [Event format](./docs/event-format.md)
 - [AI summary](./docs/ai-summary.md)
+- [Publishing notes](./docs/publish-to-npm.md)
 
-## Example
+## License
 
-```bash
-cd examples/react-demo
-npm install
-npm run dev
-```
+[MIT](./LICENSE)
